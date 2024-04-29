@@ -1,5 +1,6 @@
 package com.kamesh.weatherapplication.adapter
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.icu.text.SimpleDateFormat
 import android.os.Build
@@ -11,12 +12,8 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.kamesh.weatherapplication.model.forecast.WeatherDataModel
 import com.kamesh.weatherapplication.R
-
 import kotlinx.android.synthetic.main.weather_forecast_item.view.*
 import java.util.*
-
-
-
 
 class WeatherForecastAdapter (
     private val forecastList: ArrayList<WeatherDataModel>,
@@ -26,16 +23,15 @@ class WeatherForecastAdapter (
 
     class WeatherForecastHolder (itemView: View): RecyclerView.ViewHolder(itemView) {
 
+        @SuppressLint("SimpleDateFormat", "SetTextI18n", "WeekBasedYear")
         @RequiresApi(Build.VERSION_CODES.N)
         fun bind(forecastElement: WeatherDataModel) {
-
-
             itemView.forecastDegree.text = "${(forecastElement.main.temp - 273.15).toInt()} °C "
             val sdfSource = SimpleDateFormat("YYYY-MM-dd HH:mm:ss")
             val date = sdfSource.parse(forecastElement.dt_txt)
             val sdfDestination = SimpleDateFormat("d MMM hh:mm a")
             itemView.forecastTime.text = sdfDestination.format(date)
-            updateUI(forecastElement.weather[0].icon)
+            forecastElement.weather[0].icon?.let { updateUI(it) }
         }
         private fun updateUI(icon: String) {
             when (icon) {
@@ -93,7 +89,6 @@ class WeatherForecastAdapter (
                     itemView.forecastImage.setImageResource(R.drawable.snow_cloud_day)
 
                 }
-
                 "13n" -> {
                     itemView.forecastCard.background = ContextCompat.getDrawable(
                         itemView.context,
@@ -190,10 +185,6 @@ class WeatherForecastAdapter (
 
         }
     }
-
-
-
-
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): WeatherForecastHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.weather_forecast_item, parent, false)
@@ -207,8 +198,13 @@ class WeatherForecastAdapter (
             }
 
         }
+    fun setForecastList(forecastList: List<WeatherDataModel>) {
+        this.forecastList.clear()
+        this.forecastList.addAll(forecastList)
+        notifyDataSetChanged()
+    }
 
-        override fun getItemCount(): Int = forecastList.size
 
 
+    override fun getItemCount(): Int = forecastList.size
 }

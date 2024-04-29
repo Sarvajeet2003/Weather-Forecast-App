@@ -8,6 +8,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper.myLooper
@@ -28,22 +30,26 @@ import com.kamesh.weatherapplication.model.current.WeatherModel
 import com.kamesh.weatherapplication.model.forecast.WeatherDataModel
 import com.kamesh.weatherapplication.model.forecast.WeatherParentModel
 import com.google.android.gms.location.*
+import com.kamesh.weatherapplication.Database.WeatherData
+import com.kamesh.weatherapplication.Database.WeatherDatabaseHelper
 import com.kamesh.weatherapplication.R
 import com.kamesh.weatherapplication.adapter.WeatherForecastAdapter
 import com.kamesh.weatherapplication.api.WeatherApiServices
 import com.kamesh.weatherapplication.databinding.ActivityWeatherBinding
+import com.kamesh.weatherapplication.model.current.Main
+import com.kamesh.weatherapplication.model.current.Sys
+import com.kamesh.weatherapplication.model.current.Weather
+import com.kamesh.weatherapplication.model.current.Wind
+import com.kamesh.weatherapplication.model.forecast.WeatherValueModel
 import kotlinx.android.synthetic.main.activity_weather.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import java.math.RoundingMode
 import java.text.SimpleDateFormat
-import java.time.Instant
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.*
-
 
 
 class WeatherActivity : AppCompatActivity() {
@@ -61,6 +67,7 @@ class WeatherActivity : AppCompatActivity() {
     private lateinit var date6: String
     private lateinit var date7: String
 
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,13 +79,16 @@ class WeatherActivity : AppCompatActivity() {
         tvLatitude = findViewById(R.id.tvLatitude)
         tvLongitude = findViewById(R.id.tvLongitude)
 
-
+        val dbHelper = WeatherDatabaseHelper(this)
+        dbHelper.printAllWeatherData()
+        // Initialize ViewModel and adapter
         getLocation()
         dateStamp()
         weatherSearch()
         refreshPage()
         setClickListeners()
     }
+
 
     private fun setClickListeners(){
         binding.Btn1.setOnClickListener { filterWeatherOnDate(date1, binding.Btn1) }
@@ -201,29 +211,86 @@ class WeatherActivity : AppCompatActivity() {
         })
     }
 
+    fun isInternetConnected(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val network = connectivityManager.activeNetwork ?: return false
+            val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+
+            return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        } else {
+            val networkInfo = connectivityManager.activeNetworkInfo
+            return networkInfo != null && networkInfo.isConnected
+        }
+    }
     private fun getCityWeather(cityName: String) {
-        binding.progressBar.visibility = View.VISIBLE
-        WeatherApiServices.getApiInterface()?.getWeatherData(cityName, API_KEY)?.enqueue(object :Callback<WeatherModel>{
-            @RequiresApi(Build.VERSION_CODES.O)
-            override fun onResponse(call: Call<WeatherModel>, response: Response<WeatherModel>) {
-                if(response.isSuccessful){
-                    setDataOnViews(response.body())
-                    binding.errortext.visibility = View.GONE
-                }else{
-                    binding.weatherPage.visibility = View.GONE
-                    binding.progressBar.visibility = View.GONE
-                    binding.errortext.visibility = View.VISIBLE
+        if (isInternetConnected(this)) {
+            binding.progressBar.visibility = View.VISIBLE
+            WeatherApiServices.getApiInterface()?.getWeatherData(cityName, API_KEY)?.enqueue(object :Callback<WeatherModel>{
+                @RequiresApi(Build.VERSION_CODES.O)
+                override fun onResponse(call: Call<WeatherModel>, response: Response<WeatherModel>) {
+                    if(response.isSuccessful){
+                        setDataOnViews(response.body())
+                        binding.errortext.visibility = View.GONE
+                    }else{
+                        binding.weatherPage.visibility = View.GONE
+                        binding.progressBar.visibility = View.GONE
+                        binding.errortext.visibility = View.VISIBLE
+                    }
+
                 }
 
-            }
+                override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
 
-            override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
+                    Toast.makeText(applicationContext,"Please Enter the Valid Location Name",Toast.LENGTH_LONG).show()
+                }
 
-                Toast.makeText(applicationContext,"Please Enter the Valid Location Name",Toast.LENGTH_LONG).show()
-            }
-
-        })
+            })
+        } else {
+            // If no internet, fetch data from the local database
+            fetchWeatherDataFromDatabase(cityName)
+        }
     }
+    private fun fetchWeatherDataFromDatabase(cityName: String) {
+        val dbHelper = WeatherDatabaseHelper(this)
+        val weatherData = dbHelper.getWeatherDataForCity(cityName)
+
+        if (weatherData != null) {
+            // Convert WeatherData to WeatherModel
+            val weatherModel = WeatherModel(
+                name = weatherData.city,
+                sys = Sys(country = null,id = null, sunrise = null, sunset = null, type = null), // Provide necessary fields as per WeatherModel
+                main = Main(
+                    temp = weatherData.currentTemperature,
+                    tempMax = weatherData.maxTemperature,
+                    tempMin = weatherData.minTemperature,
+                    pressure = weatherData.pressure,
+                    humidity = weatherData.humidity,
+                    feelsLike = null
+                ),
+                wind = Wind(speed = weatherData.windSpeed,deg = null),
+                weather = listOf(WeatherValueModel(description = null, icon = null,id = null,main = null)) ,
+                clouds = null,
+                cod = null,
+                coord = null,
+                dt = null,
+                id = null,
+                timezone = null,
+                visibility = null,
+                base = null
+
+            )
+
+            // Display WeatherModel data on the UI
+            setDataOnViews(weatherModel)
+            Toast.makeText(applicationContext, "Showing cached data", Toast.LENGTH_SHORT).show()
+        } else {
+            // If no data exists in the database, show a message indicating no data
+            Toast.makeText(applicationContext, "No cached data available", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
     private fun getLocation() {
         if (checkThePermission()){
@@ -246,7 +313,6 @@ class WeatherActivity : AppCompatActivity() {
                         if (location == null){
                             newLocation()
                         }else{
-                            //Log.i("Location",location.longitude.toString())
                             fetchCurrentLocationWeather(location.latitude.toString(),location.longitude.toString())
                             fetchForecastWeather(location.latitude.toString(),location.longitude.toString())
                             binding.progressBar.visibility = View.GONE
@@ -274,7 +340,12 @@ class WeatherActivity : AppCompatActivity() {
             ) {
                 if (response.isSuccessful){
                     setDataOnViews(response.body())
+
+
                 }
+//                else{
+//                    fetchWeatherDataFromDatabase(cityName)
+//                }
             }
 
             override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
@@ -301,8 +372,6 @@ class WeatherActivity : AppCompatActivity() {
             }
         })
     }
-
-
     @SuppressLint("SetTextI18n", "SimpleDateFormat")
     private fun setDataOnViews(body: WeatherModel?) {
         val sdf = SimpleDateFormat("dd/MM/yyyy hh:mm")
@@ -320,7 +389,29 @@ class WeatherActivity : AppCompatActivity() {
         binding.miniStatusFeelsLikeCount.text = ""+body.main.pressure.toString()+" hPa"
         binding.miniStatusHumidityCount.text =body.main.humidity.toString()+"%"
         binding.miniStatusWindCount.text = body.wind.speed.toString()+"m/s"
-        updateUI(body.weather[0].icon)
+        body.weather[0].icon?.let { updateUI(it) }
+
+        val weatherData = WeatherData(
+            null,
+            body?.name ?: "",
+            body?.coord?.lat ?: 0.0,
+            body?.coord?.lon ?: 0.0,
+            body?.main?.temp ?: 0.0,
+            body?.main?.tempMax ?: 0.0,
+            body?.main?.tempMin ?: 0.0,
+            body?.main?.pressure ?: 0,
+            body?.main?.humidity ?: 0,
+            body?.wind?.speed ?: 0.0
+        )
+
+        // Insert the weather data into the database
+        val dbHelper = WeatherDatabaseHelper(this)
+        val newRowId = dbHelper.addWeather(weatherData)
+        if (newRowId != -1L) {
+            Toast.makeText(applicationContext, "Weather data added to database", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(applicationContext, "Failed to add weather data to database", Toast.LENGTH_SHORT).show()
+        }
 
     }
 
@@ -541,18 +632,15 @@ class WeatherActivity : AppCompatActivity() {
         binding.weatherPage.visibility = View.VISIBLE
 
     }
-
     companion object{
         private const val PERMISSION_REQUEST_ACCESS_LOCATION = 100
-        const val API_KEY ="your_api_key"
+        const val API_KEY ="601dc0c859d578d9ad03b4fa414abd3b"
     }
-
         private fun kelvinToCelsius(temp: Double): Double {
         var intTemp = temp
         intTemp = intTemp.minus(273)
         return intTemp.toBigDecimal().setScale(1,RoundingMode.UP).toDouble()
     }
-
     @Suppress("MissingPermission")
     private fun newLocation() {
         val locationRequest = LocationRequest()
@@ -565,13 +653,11 @@ class WeatherActivity : AppCompatActivity() {
             ?.let { mFusedLocation.requestLocationUpdates(locationRequest,locationCallback, it) }
 
     }
-
     private val locationCallback=object : LocationCallback(){
         override fun onLocationResult(p0: LocationResult) {
             var lastLocation: Location? =p0.lastLocation
         }
     }
-
     private fun requestPermission() {
         ActivityCompat.requestPermissions(this, arrayOf(
             android.Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -580,13 +666,11 @@ class WeatherActivity : AppCompatActivity() {
             PERMISSION_REQUEST_ACCESS_LOCATION
         )
     }
-
     private fun locationEnabled(): Boolean {
         val locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
                 || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
     }
-
     private fun checkThePermission(): Boolean {
         if (ActivityCompat.checkSelfPermission(this,android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED||
             ActivityCompat.checkSelfPermission(this,android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
@@ -594,7 +678,6 @@ class WeatherActivity : AppCompatActivity() {
         }
         return false
     }
-
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -609,6 +692,4 @@ class WeatherActivity : AppCompatActivity() {
             }
         }
     }
-
-
 }

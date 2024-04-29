@@ -2,20 +2,21 @@ package com.kamesh.weatherapplication.model.current
 
 
 import com.google.gson.annotations.SerializedName
+import com.kamesh.weatherapplication.model.forecast.WeatherValueModel
 
 data class WeatherModel(
     @SerializedName("base")
-    val base: String,
+    val base: String?,
     @SerializedName("clouds")
-    val clouds: Clouds,
+    val clouds: Clouds?,
     @SerializedName("cod")
-    val cod: Int,
+    val cod: Int?,
     @SerializedName("coord")
-    val coord: Coord,
+    val coord: Coord?,
     @SerializedName("dt")
-    val dt: Int,
+    val dt: Long?,
     @SerializedName("id")
-    val id: Int,
+    val id: Int?,
     @SerializedName("main")
     val main: Main,
     @SerializedName("name")
@@ -23,11 +24,11 @@ data class WeatherModel(
     @SerializedName("sys")
     val sys: Sys,
     @SerializedName("timezone")
-    val timezone: Int,
+    val timezone: Int?,
     @SerializedName("visibility")
-    val visibility: Int,
+    val visibility: Int?,
     @SerializedName("weather")
-    val weather: List<Weather>,
+    val weather: List<WeatherValueModel>,
     @SerializedName("wind")
-    val wind: Wind
-)
+    val wind: Wind,
+    )
