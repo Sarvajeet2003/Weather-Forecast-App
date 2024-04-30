@@ -32,13 +32,13 @@ import com.kamesh.weatherapplication.model.forecast.WeatherParentModel
 import com.google.android.gms.location.*
 import com.kamesh.weatherapplication.Database.WeatherData
 import com.kamesh.weatherapplication.Database.WeatherDatabaseHelper
+import com.kamesh.weatherapplication.Notifiaction.WeatherNotification
 import com.kamesh.weatherapplication.R
 import com.kamesh.weatherapplication.adapter.WeatherForecastAdapter
 import com.kamesh.weatherapplication.api.WeatherApiServices
 import com.kamesh.weatherapplication.databinding.ActivityWeatherBinding
 import com.kamesh.weatherapplication.model.current.Main
 import com.kamesh.weatherapplication.model.current.Sys
-import com.kamesh.weatherapplication.model.current.Weather
 import com.kamesh.weatherapplication.model.current.Wind
 import com.kamesh.weatherapplication.model.forecast.WeatherValueModel
 import kotlinx.android.synthetic.main.activity_weather.*
@@ -88,7 +88,6 @@ class WeatherActivity : AppCompatActivity() {
         refreshPage()
         setClickListeners()
     }
-
 
     private fun setClickListeners(){
         binding.Btn1.setOnClickListener { filterWeatherOnDate(date1, binding.Btn1) }
@@ -226,27 +225,31 @@ class WeatherActivity : AppCompatActivity() {
     }
     private fun getCityWeather(cityName: String) {
         if (isInternetConnected(this)) {
+            var weather: Double? = null
             binding.progressBar.visibility = View.VISIBLE
             WeatherApiServices.getApiInterface()?.getWeatherData(cityName, API_KEY)?.enqueue(object :Callback<WeatherModel>{
                 @RequiresApi(Build.VERSION_CODES.O)
+
                 override fun onResponse(call: Call<WeatherModel>, response: Response<WeatherModel>) {
                     if(response.isSuccessful){
                         setDataOnViews(response.body())
+                        weather = response.body()?.main?.temp
                         binding.errortext.visibility = View.GONE
                     }else{
+                        weather = null
                         binding.weatherPage.visibility = View.GONE
                         binding.progressBar.visibility = View.GONE
                         binding.errortext.visibility = View.VISIBLE
                     }
 
                 }
-
                 override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
 
                     Toast.makeText(applicationContext,"Please Enter the Valid Location Name",Toast.LENGTH_LONG).show()
                 }
 
             })
+            WeatherNotification.showNotification(this,weather)
         } else {
             // If no internet, fetch data from the local database
             fetchWeatherDataFromDatabase(cityName)
@@ -281,6 +284,8 @@ class WeatherActivity : AppCompatActivity() {
                 base = null
 
             )
+            // Show notification with current temperature
+            WeatherNotification.showNotification(this, weatherData.currentTemperature)
 
             // Display WeatherModel data on the UI
             setDataOnViews(weatherModel)
@@ -343,11 +348,7 @@ class WeatherActivity : AppCompatActivity() {
 
 
                 }
-//                else{
-//                    fetchWeatherDataFromDatabase(cityName)
-//                }
             }
-
             override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
                 Toast.makeText(applicationContext,"Error Getting Current Weather", Toast.LENGTH_SHORT).show()
             }
