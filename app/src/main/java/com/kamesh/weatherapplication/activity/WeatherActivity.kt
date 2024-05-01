@@ -225,36 +225,33 @@ class WeatherActivity : AppCompatActivity() {
     }
     private fun getCityWeather(cityName: String) {
         if (isInternetConnected(this)) {
-            var weather: Double? = null
             binding.progressBar.visibility = View.VISIBLE
-            WeatherApiServices.getApiInterface()?.getWeatherData(cityName, API_KEY)?.enqueue(object :Callback<WeatherModel>{
+            WeatherApiServices.getApiInterface()?.getWeatherData(cityName, API_KEY)?.enqueue(object : Callback<WeatherModel> {
                 @RequiresApi(Build.VERSION_CODES.O)
-
                 override fun onResponse(call: Call<WeatherModel>, response: Response<WeatherModel>) {
-                    if(response.isSuccessful){
+                    if (response.isSuccessful) {
+                        val weather = response.body()?.main?.temp
                         setDataOnViews(response.body())
-                        weather = response.body()?.main?.temp
                         binding.errortext.visibility = View.GONE
-                    }else{
-                        weather = null
+                        println(weather)
+                        WeatherNotification.showNotification(this@WeatherActivity, weather)
+                    } else {
                         binding.weatherPage.visibility = View.GONE
                         binding.progressBar.visibility = View.GONE
                         binding.errortext.visibility = View.VISIBLE
                     }
-
                 }
+
                 override fun onFailure(call: Call<WeatherModel>, t: Throwable) {
-
-                    Toast.makeText(applicationContext,"Please Enter the Valid Location Name",Toast.LENGTH_LONG).show()
+                    Toast.makeText(applicationContext, "Please Enter the Valid Location Name", Toast.LENGTH_LONG).show()
                 }
-
             })
-            WeatherNotification.showNotification(this,weather)
         } else {
             // If no internet, fetch data from the local database
             fetchWeatherDataFromDatabase(cityName)
         }
     }
+
     private fun fetchWeatherDataFromDatabase(cityName: String) {
         val dbHelper = WeatherDatabaseHelper(this)
         val weatherData = dbHelper.getWeatherDataForCity(cityName)

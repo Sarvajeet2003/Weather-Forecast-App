@@ -29,9 +29,15 @@ object WeatherNotification {
 
         // Create custom notification layout
         val notificationLayout = RemoteViews(context.packageName, R.layout.notification_layout)
-        notificationLayout.setTextViewText(R.id.notification_content, "Current temperature: $currentTemp°C")
-        notificationLayout.setTextViewText(R.id.notification_title, "Current Temperature")
 
+        val currentTempInCelsius = currentTemp?.minus(273.15)
+
+// Format the temperature string to display with one decimal place
+        val formattedTemperature = String.format("%.1f", currentTempInCelsius)
+
+// Update the notification layout with the converted temperature
+        notificationLayout.setTextViewText(R.id.notification_content, "Current temperature: $formattedTemperature°C")
+        notificationLayout.setTextViewText(R.id.notification_title, "Current Temperature: $formattedTemperature°C")
         // Create notification
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
@@ -39,7 +45,8 @@ object WeatherNotification {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Set visibility
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-
+        println("yessdasds")
+        println(notification)
         // Show the notification
         notificationManager.notify(0, notification)
     }
