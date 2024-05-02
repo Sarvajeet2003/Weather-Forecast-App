@@ -45,8 +45,6 @@ object WeatherNotification {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC) // Set visibility
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        println("yessdasds")
-        println(notification)
         // Show the notification
         notificationManager.notify(0, notification)
     }
