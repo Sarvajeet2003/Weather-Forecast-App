@@ -124,7 +124,7 @@
                         android:layout_marginEnd="30dp"
                         android:fontFamily="@font/inter_medium"
                         android:maxEms="8"
-                        android:text="@string/kadapa"
+                        android:text="@string/Sarvajeeth"
                         android:textColor="@color/white"
                         android:textSize="28sp"
                         app:layout_constraintStart_toStartOf="parent"
@@ -136,7 +136,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="20dp"
                         android:fontFamily="@font/inter_medium"
-                        android:text="@string/andhra_pradesh"
+                        android:text="@string/Delhi"
                         android:textColor="@color/white"
                         android:textSize="20sp"
                         app:layout_constraintStart_toStartOf="parent"
@@ -268,6 +268,17 @@
                             android:text="Night 29"
                             android:textColor="@color/white"
                             android:textSize="14sp" />
+
+                        <Button
+                            android:id="@+id/btnViewGraph"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center_horizontal"
+                            android:background="@drawable/button_background"
+                            android:onClick="onViewGraphButtonClicked"
+                            android:text="View Graph"
+                            android:textColor="@android:color/white"
+                            tools:ignore="MissingConstraints,OnClick" />
 
 
                     </RelativeLayout>

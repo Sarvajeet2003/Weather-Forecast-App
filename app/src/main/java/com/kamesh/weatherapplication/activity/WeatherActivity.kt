@@ -18,6 +18,7 @@ import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.RequiresApi
@@ -81,13 +82,19 @@ class WeatherActivity : AppCompatActivity() {
 
         val dbHelper = WeatherDatabaseHelper(this)
         dbHelper.printAllWeatherData()
-        // Initialize ViewModel and adapter
+
+
         getLocation()
         dateStamp()
         weatherSearch()
         refreshPage()
         setClickListeners()
     }
+    fun onViewGraphButtonClicked(view: View) {
+        val temperatureData = forecastList.map { it.main.temp }
+        startGraphActivity(temperatureData)
+    }
+
 
     private fun setClickListeners(){
         binding.Btn1.setOnClickListener { filterWeatherOnDate(date1, binding.Btn1) }
@@ -98,6 +105,22 @@ class WeatherActivity : AppCompatActivity() {
         binding.Btn6.setOnClickListener { filterWeatherOnDate(date6, binding.Btn6) }
         binding.Btn7.setOnClickListener { filterWeatherOnDate(date7, binding.Btn7) }
     }
+    // In WeatherActivity
+    private fun startGraphActivity(temperatureData: List<Double>) {
+        val intent = Intent(this, GraphActivity::class.java)
+        // Convert temperatures from Kelvin to Celsius
+        val celsiusTemperatures = temperatureData.map { kelvinToCelsiusArray(it) }
+        println("Temperature Data in Celsius:")
+        println(celsiusTemperatures)
+        intent.putExtra("temperatureData", celsiusTemperatures.toDoubleArray())
+        startActivity(intent)
+    }
+
+    private fun kelvinToCelsiusArray(kelvinTemperature: Double): Double {
+        return kelvinTemperature - 273.15
+    }
+
+
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun filterWeatherOnDate(date: String, dateLabel: TextView) {
@@ -145,6 +168,7 @@ class WeatherActivity : AppCompatActivity() {
 
 
 
+    @SuppressLint("WeekBasedYear")
     @RequiresApi(Build.VERSION_CODES.O)
     private fun dateStamp() {
 
@@ -247,7 +271,6 @@ class WeatherActivity : AppCompatActivity() {
                 }
             })
         } else {
-            // If no internet, fetch data from the local database
             fetchWeatherDataFromDatabase(cityName)
         }
     }
