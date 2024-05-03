@@ -3,6 +3,7 @@ package com.kamesh.weatherapplication.activity
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.os.Bundle
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.androidplot.ui.HorizontalPositioning
 import com.androidplot.ui.VerticalPositioning
@@ -31,10 +32,8 @@ class GraphActivity : AppCompatActivity() {
         val plot = findViewById<XYPlot>(R.id.plot)
         // Create a series and add data points
         val series = SimpleXYSeries("Temperature Data")
-        val timeInterval = 1 // Assuming time interval between readings is 1 hour
         for (i in temperatureData.indices) {
-            val time = i * timeInterval
-            series.addLast(time.toDouble(), temperatureData[i])
+            series.addLast(i,temperatureData[i])
         }
 
         // Smooth the curve using Catmull-Rom interpolation
@@ -42,15 +41,12 @@ class GraphActivity : AppCompatActivity() {
         lineAndPointFormatter.interpolationParams = CatmullRomInterpolator.Params(10, CatmullRomInterpolator.Type.Centripetal)
         plot.addSeries(series, lineAndPointFormatter)
 
-        // Customize plot appearance
-        plot.setDomainLabel("Time (hours)")
-        plot.setRangeLabel("Temperature (°C)")
 
         // Set range boundaries to ensure proper scaling
         plot.setRangeBoundaries(temperatureData.min()!!, temperatureData.max()!!, BoundaryMode.FIXED)
 
         // Set some padding around the plot area
-        plot.graph.setMargins(50f, 50f, 50f, 50f)
+        plot.graph.setMargins(0f, 0f, 0f, 0f)
 
         // Set label formatting for the axes with increased font size
         val labelTextSizePx = PixelUtils.dpToPix(2400f) // Change the font size as desired
