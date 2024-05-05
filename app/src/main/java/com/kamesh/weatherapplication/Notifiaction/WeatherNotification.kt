@@ -11,7 +11,6 @@ import com.kamesh.weatherapplication.R
 object WeatherNotification {
 
     private const val CHANNEL_ID = "WeatherChannel"
-
     @SuppressLint("RemoteViewLayout")
     fun showNotification(context: Context, currentTemp: Double?) {
         val notificationManager = context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -32,10 +31,10 @@ object WeatherNotification {
 
         val currentTempInCelsius = currentTemp?.minus(273.15)
 
-// Format the temperature string to display with one decimal place
+        // Format the temperature string to display with one decimal place
         val formattedTemperature = String.format("%.1f", currentTempInCelsius)
 
-// Update the notification layout with the converted temperature
+        // Update the notification layout with the converted temperature
         notificationLayout.setTextViewText(R.id.notification_content, "Current temperature: $formattedTemperature°C")
         notificationLayout.setTextViewText(R.id.notification_title, "Current Temperature: $formattedTemperature°C")
         // Create notification
